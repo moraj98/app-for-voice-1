@@ -9,10 +9,11 @@ account, no per-use cost.
 
 ## Easiest free option: Google Colab (no installation)
 
-Open `voice_clone_colab.ipynb` in [Google Colab](https://colab.research.google.com)
-(File → Open notebook → GitHub → paste this repo URL), switch the runtime to the
-free T4 GPU, and run the cells. It clones the voice from the sample in this repo
-and downloads an MP3 — completely free.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/moraj98/app-for-voice-1/blob/claude/tts-ai-voice-generator-410s1c/voice_clone_colab.ipynb)
+
+Click the badge above → switch the runtime to the free **T4 GPU**
+(Runtime → Change runtime type) → run the cells top to bottom. It clones the
+voice from the sample in this repo and downloads an MP3 — completely free.
 
 ## Run on your own computer
 
