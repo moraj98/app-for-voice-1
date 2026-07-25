@@ -9,6 +9,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VOICE_SAMPLES_DIR = os.path.join(BASE_DIR, "voice_samples")
 OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")
 ALLOWED_SAMPLE_EXTENSIONS = {".wav", ".mp3", ".ogg", ".flac", ".m4a"}
+DEFAULT_SAMPLE_PATH = os.path.join(BASE_DIR, "voice_samples", "mohit_sample.mp3")
 
 os.makedirs(VOICE_SAMPLES_DIR, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
@@ -41,16 +42,21 @@ def generate():
 
     if not text:
         return jsonify({"error": "Please enter some text to speak."}), 400
-    if not voice_sample or voice_sample.filename == "":
-        return jsonify({"error": "Please upload a voice sample."}), 400
-
-    ext = os.path.splitext(voice_sample.filename)[1].lower()
-    if ext not in ALLOWED_SAMPLE_EXTENSIONS:
-        return jsonify({"error": f"Unsupported voice sample type: {ext}"}), 400
 
     job_id = uuid.uuid4().hex
-    sample_path = os.path.join(VOICE_SAMPLES_DIR, f"{job_id}{ext}")
-    voice_sample.save(sample_path)
+    uploaded_sample_path = None
+
+    if voice_sample and voice_sample.filename:
+        ext = os.path.splitext(voice_sample.filename)[1].lower()
+        if ext not in ALLOWED_SAMPLE_EXTENSIONS:
+            return jsonify({"error": f"Unsupported voice sample type: {ext}"}), 400
+        uploaded_sample_path = os.path.join(VOICE_SAMPLES_DIR, f"{job_id}{ext}")
+        voice_sample.save(uploaded_sample_path)
+        sample_path = uploaded_sample_path
+    elif os.path.exists(DEFAULT_SAMPLE_PATH):
+        sample_path = DEFAULT_SAMPLE_PATH
+    else:
+        return jsonify({"error": "Please upload a voice sample."}), 400
 
     wav_path = os.path.join(OUTPUTS_DIR, f"{job_id}.wav")
     mp3_path = os.path.join(OUTPUTS_DIR, f"{job_id}.mp3")
@@ -67,8 +73,8 @@ def generate():
     except Exception as exc:
         return jsonify({"error": f"Voice generation failed: {exc}"}), 500
     finally:
-        for path in (sample_path, wav_path):
-            if os.path.exists(path):
+        for path in (uploaded_sample_path, wav_path):
+            if path and os.path.exists(path):
                 os.remove(path)
 
     return send_file(

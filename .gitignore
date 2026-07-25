@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 voice_samples/*
 !voice_samples/.gitkeep
+!voice_samples/mohit_sample.mp3
 outputs/*
 !outputs/.gitkeep
 .DS_Store
