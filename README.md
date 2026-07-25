@@ -7,7 +7,16 @@ Runs entirely on your own machine using the open-source
 [Coqui XTTS-v2](https://github.com/coqui-ai/TTS) model — no API key, no
 account, no per-use cost.
 
-## Requirements
+## Easiest free option: Google Colab (no installation)
+
+Open `voice_clone_colab.ipynb` in [Google Colab](https://colab.research.google.com)
+(File → Open notebook → GitHub → paste this repo URL), switch the runtime to the
+free T4 GPU, and run the cells. It clones the voice from the sample in this repo
+and downloads an MP3 — completely free.
+
+## Run on your own computer
+
+### Requirements
 
 - Python 3.9–3.11
 - [ffmpeg](https://ffmpeg.org/download.html) installed and on your `PATH`
@@ -15,7 +24,7 @@ account, no per-use cost.
 - ~2 GB free disk space (the voice model downloads automatically on first run)
 - A CPU works, but generation is faster with a GPU (CUDA)
 
-## Setup
+### Setup
 
 ```bash
 python -m venv venv
@@ -24,7 +33,7 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Run
+### Run
 
 ```bash
 python app.py
@@ -32,7 +41,7 @@ python app.py
 
 Open http://localhost:5000 in your browser.
 
-## Usage
+### Usage
 
 1. Upload a short sample of your voice (a clean 5–15 second WAV or MP3 clip
    works best, no background noise).
