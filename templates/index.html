@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Voice Generator</title>
+  <style>
+    body {
+      font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+      max-width: 560px;
+      margin: 60px auto;
+      padding: 0 20px;
+      color: #222;
+    }
+    h1 { font-size: 1.5rem; }
+    label { display: block; margin-top: 18px; font-weight: 600; }
+    textarea, input[type="file"], select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    textarea { height: 120px; resize: vertical; }
+    button {
+      margin-top: 20px;
+      padding: 10px 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      background: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+    }
+    button:disabled { opacity: 0.6; cursor: default; }
+    #status { margin-top: 16px; font-size: 0.95rem; }
+    #status.error { color: #b00020; }
+    audio { margin-top: 16px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>AI Voice Generator</h1>
+  <p>Upload a short sample of your voice, type what you want it to say, and get an MP3 back in your own cloned voice.</p>
+
+  <form id="voice-form">
+    <label for="voice_sample">Your voice sample (wav/mp3, a few seconds is enough)</label>
+    <input type="file" id="voice_sample" name="voice_sample" accept=".wav,.mp3,.ogg,.flac,.m4a" required>
+
+    <label for="text">Text to speak</label>
+    <textarea id="text" name="text" placeholder="Type the text you want spoken in your voice..." required></textarea>
+
+    <label for="language">Language</label>
+    <select id="language" name="language">
+      <option value="en" selected>English</option>
+      <option value="hi">Hindi</option>
+      <option value="es">Spanish</option>
+      <option value="fr">French</option>
+      <option value="de">German</option>
+    </select>
+
+    <button type="submit" id="submit-btn">Generate MP3</button>
+  </form>
+
+  <div id="status"></div>
+  <audio id="player" controls style="display:none;"></audio>
+
+  <script>
+    const form = document.getElementById("voice-form");
+    const statusEl = document.getElementById("status");
+    const submitBtn = document.getElementById("submit-btn");
+    const player = document.getElementById("player");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusEl.className = "";
+      statusEl.textContent = "Generating your voice... this can take a minute the first time.";
+      player.style.display = "none";
+      submitBtn.disabled = true;
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch("/generate", { method: "POST", body: formData });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Something went wrong.");
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        player.src = url;
+        player.style.display = "block";
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "ai_voice.mp3";
+        link.click();
+
+        statusEl.textContent = "Done! Your MP3 has been downloaded.";
+      } catch (err) {
+        statusEl.className = "error";
+        statusEl.textContent = err.message;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

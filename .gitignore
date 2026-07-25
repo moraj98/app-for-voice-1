@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+voice_samples/*
+!voice_samples/.gitkeep
+outputs/*
+!outputs/.gitkeep
+.DS_Store
