@@ -5,6 +5,8 @@ import uuid
 from flask import Flask, render_template, request, send_file, jsonify
 from pydub import AudioSegment
 
+from prompt_generator import INTENT_ROLES, generate_prompt, refine_prompt
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VOICE_SAMPLES_DIR = os.path.join(BASE_DIR, "voice_samples")
 OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")
@@ -32,6 +34,29 @@ def get_tts_model():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/prompt")
+def prompt_page():
+    return render_template("prompt.html", intents=sorted(INTENT_ROLES))
+
+
+@app.route("/api/prompt", methods=["POST"])
+def api_prompt():
+    payload = request.get_json(silent=True) or {}
+    words = (payload.get("words") or "").strip()
+    intent = (payload.get("intent") or "auto").strip()
+    existing = (payload.get("prompt") or "").strip()
+
+    try:
+        if payload.get("mode") == "refine" and existing:
+            result = refine_prompt(existing, words, intent=intent)
+        else:
+            result = generate_prompt(words, intent=intent)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify(result)
 
 
 @app.route("/generate", methods=["POST"])

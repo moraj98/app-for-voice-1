@@ -54,3 +54,51 @@ Open http://localhost:5000 in your browser.
 
 Uploaded samples and intermediate audio files are deleted from the server
 right after each generation; only the MP3 is returned to you.
+
+## Prompt generator
+
+A second page at http://localhost:5000/prompt turns a handful of words into a
+structured prompt, then refines it as you add more.
+
+Type loose keywords — `cat, cyberpunk, neon, close-up, 16:9, no people` — and it
+sorts them into subject, style, lighting, camera, tone, format and so on,
+detects what kind of prompt you are after (image, video, audio, code, writing,
+analysis), and assembles a matching template:
+
+```
+A cyberpunk image of cat.
+
+Composition: close-up
+Lighting: neon
+Output: 16:9, high detail and sharp focus on the subject
+Avoid: people
+```
+
+It also lists what the prompt is still missing (an art style, a target length,
+who the reader is), so you can type those words in and press **Refine** to fold
+them into the same prompt instead of starting over. Refining a prompt with no
+new words leaves it unchanged, so you can iterate as many times as you like.
+
+Two conventions worth knowing:
+
+- Words prefixed with `no`, `without` or `-` go into the avoid list.
+- A comma-separated chunk of five or more words is kept verbatim as the subject,
+  so `why is my deploy slow` survives intact; shorter chunks get their filler
+  words stripped.
+
+This runs offline like the rest of the app — no model, no API key. It is a
+parser and a set of templates, not a language model.
+
+### From the command line
+
+```bash
+python prompt_generator.py "drone shot over a desert highway, golden hour, cinematic, 9:16"
+python prompt_generator.py "500 word linkedin post on hiring, witty" --json
+python prompt_generator.py "cat, watercolor" --intent video
+```
+
+### Tests
+
+```bash
+python -m unittest
+```

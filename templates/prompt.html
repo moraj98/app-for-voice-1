@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prompt Generator</title>
+  <style>
+    body {
+      font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+      max-width: 640px;
+      margin: 60px auto;
+      padding: 0 20px;
+      color: #222;
+    }
+    h1 { font-size: 1.5rem; }
+    a { color: #222; }
+    label { display: block; margin-top: 18px; font-weight: 600; }
+    textarea, select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    textarea { height: 90px; resize: vertical; }
+    .hint { font-size: 0.85rem; font-weight: 400; color: #666; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    button {
+      padding: 10px 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      background: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+    }
+    button.secondary { background: #fff; color: #222; border: 1px solid #ccc; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #result { display: none; margin-top: 28px; }
+    pre {
+      background: #f6f6f6;
+      border: 1px solid #e2e2e2;
+      border-radius: 6px;
+      padding: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 0.95rem;
+    }
+    .meta { font-size: 0.9rem; color: #555; }
+    .chips { margin-top: 8px; }
+    .chip {
+      display: inline-block;
+      background: #eee;
+      border-radius: 12px;
+      padding: 2px 10px;
+      margin: 0 6px 6px 0;
+      font-size: 0.8rem;
+    }
+    ul { padding-left: 20px; font-size: 0.9rem; color: #555; }
+    #status { margin-top: 16px; font-size: 0.95rem; }
+    #status.error { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Prompt Generator</h1>
+  <p>Throw in a few words. It sorts them into subject, style, tone and format,
+    then writes a structured prompt around them. Hit <strong>Refine</strong> to
+    fold in more words without starting over.</p>
+
+  <label for="words">Your words
+    <span class="hint">Comma separated. Prefix with <code>no</code> to push something into the avoid list.</span>
+  </label>
+  <textarea id="words" placeholder="cat, cyberpunk, neon, close-up, 16:9, no people"></textarea>
+
+  <label for="intent">Prompt style</label>
+  <select id="intent">
+    <option value="auto" selected>Detect automatically</option>
+    {% for name in intents %}<option value="{{ name }}">{{ name }}</option>
+    {% endfor %}
+  </select>
+
+  <div class="row">
+    <button id="generate-btn">Generate</button>
+    <button id="refine-btn" class="secondary" disabled>Refine with these words</button>
+    <button id="copy-btn" class="secondary" disabled>Copy</button>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="result">
+    <p class="meta" id="meta"></p>
+    <pre id="prompt"></pre>
+    <div class="chips" id="chips"></div>
+    <div id="suggestions"></div>
+  </div>
+
+  <p style="margin-top:40px"><a href="/">&larr; Back to the voice generator</a></p>
+
+  <script>
+    const wordsEl = document.getElementById("words");
+    const intentEl = document.getElementById("intent");
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+    const promptEl = document.getElementById("prompt");
+    const metaEl = document.getElementById("meta");
+    const chipsEl = document.getElementById("chips");
+    const suggestionsEl = document.getElementById("suggestions");
+    const generateBtn = document.getElementById("generate-btn");
+    const refineBtn = document.getElementById("refine-btn");
+    const copyBtn = document.getElementById("copy-btn");
+
+    let current = "";
+
+    async function build(mode) {
+      const words = wordsEl.value.trim();
+      if (mode === "generate" && !words) {
+        statusEl.className = "error";
+        statusEl.textContent = "Enter at least one word to build a prompt from.";
+        return;
+      }
+
+      statusEl.className = "";
+      statusEl.textContent = mode === "refine" ? "Refining..." : "Building...";
+      generateBtn.disabled = refineBtn.disabled = true;
+
+      try {
+        const response = await fetch("/api/prompt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ words, intent: intentEl.value, mode, prompt: current }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Something went wrong.");
+
+        current = data.prompt;
+        promptEl.textContent = data.prompt;
+        metaEl.textContent =
+          "Prompt style: " + data.intent +
+          (data.intent === data.detected_intent ? " (detected)" : " (forced, detected " + data.detected_intent + ")");
+
+        chipsEl.innerHTML = "";
+        for (const [bucket, values] of Object.entries(data.buckets)) {
+          for (const value of values) {
+            const chip = document.createElement("span");
+            chip.className = "chip";
+            chip.textContent = bucket + ": " + value;
+            chipsEl.appendChild(chip);
+          }
+        }
+
+        suggestionsEl.innerHTML = "";
+        if (data.suggestions.length) {
+          const heading = document.createElement("p");
+          heading.className = "meta";
+          heading.textContent = "Add these words to sharpen it further:";
+          const list = document.createElement("ul");
+          for (const suggestion of data.suggestions) {
+            const item = document.createElement("li");
+            item.textContent = suggestion;
+            list.appendChild(item);
+          }
+          suggestionsEl.append(heading, list);
+        }
+
+        resultEl.style.display = "block";
+        copyBtn.disabled = false;
+        statusEl.textContent = "";
+        if (mode === "refine") wordsEl.value = "";
+      } catch (err) {
+        statusEl.className = "error";
+        statusEl.textContent = err.message;
+      } finally {
+        generateBtn.disabled = false;
+        refineBtn.disabled = !current;
+      }
+    }
+
+    generateBtn.addEventListener("click", () => build("generate"));
+    refineBtn.addEventListener("click", () => build("refine"));
+    copyBtn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(current);
+      statusEl.className = "";
+      statusEl.textContent = "Copied to clipboard.";
+    });
+    wordsEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) build(current ? "refine" : "generate");
+    });
+  </script>
+</body>
+</html>
